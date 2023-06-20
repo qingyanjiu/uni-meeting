@@ -25,7 +25,8 @@
 					</span>
 					<span id="toggleAudio" onclick="toggleAudio()" class="control-self-a">设为静音</span>
 					<span id="toggleVideo" onclick="toggleVideo()" class="control-self-v">设为黑屏</span>
-					<video id="selfVideo" ref="selfVideo" autoplay class="self-video"></video>
+					<video id="selfVideo" ref="selfVideo" autoplay :controls="false" :show-center-play-btn="false" 
+						class="self-video"></video>
 				</div>
 			</div>
 
@@ -121,7 +122,7 @@
 				SCREEN_SHARE_SUFFIX: "_screenshare",
 				SUB_STREAM_SUFIX: "_sub",
 				MEDIA_SERVER_RECORD_SUFIX: "_record",
-				MEDIA_SERVER_URL: 'https://49.7.210.27:50443',
+				MEDIA_SERVER_URL: 'http://localhost:48080',
 				// 会议室名称，在url地址中添加 ?room=会议室名称
 				app: 'live',
 				// 是否host，host才能共享屏幕，在url地址中添加 &host=1
@@ -157,7 +158,6 @@
 			}
 		},
 		onLoad() {
-			console.log(plus.camera.getCamera(0))
 			this.devicemanager = new BrowserDeviceManager()
 			if (!this.showPrompt) {
 				this.initCameraAndMicList()
@@ -608,7 +608,7 @@
 				//当前选中的麦克风
 				const micId = this.selectedMicId
 				
-				const selfVideoElement = this.$refs['selfVideo']
+				const selfVideoElement = this.$refs['selfVideo'].$el.children[0].children[0]
 				
 				// 主码流
 				this.selfplayer = new Endpoint({
@@ -659,7 +659,6 @@
 				this.selfplayer.on(Events.WEBRTC_ON_LOCAL_STREAM, function(s) {
 					// 获取到了本地流
 					selfVideoElement.srcObject = s;
-					debugger
 					// document.getElementById("selfVideo").muted = true;
 					//console.log('offer anwser 交换失败',e)
 				});
