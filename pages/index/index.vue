@@ -14,7 +14,8 @@
 		</div>
 		<div style="text-align: center;" id="main-content" v-if="!showPrompt">
 			<div style="text-align: center">
-				<video id="screenShare" ref="screenShare" autoplay class="screen-share-video"></video>
+				<video id="screenShare" ref="screenShare" autoplay :controls="false" :show-center-play-btn="false" 
+					class="screen-share-video"></video>
 				<video id="mediaServerRecord" style="display:none"></video>
 			</div>
 
