@@ -82,17 +82,15 @@
 						<button type="default" class="mini-btn" size="mini" @click="stop_camera()" v-if="inMeeting">断开视频会议</button>
 					</uni-row>
 					
-					<uni-row class="demo-uni-row">
+					<uni-row class="demo-uni-row" v-if="host">
 						<button type="warn" class="mini-btn" size="mini" @click="start_screenshare()" v-if="!screenSharing">开始屏幕分享</button>
 						<button type="default" class="mini-btn" size="mini" @click="stop_screenshare()" v-if="screenSharing">停止屏幕分享</button>
 					</uni-row>
-				</div>
-
-				<div class="screen-share" id="screenShareBox" v-if="this.host">
-					<span>
-						<button id="startRecord" onclick="startMediaServerRecord()">开始录制屏幕</button>
-						<button onclick="stopMediaServerRecord()">停止录制屏幕</button>
-					</span>
+					
+					<uni-row class="demo-uni-row" v-if="host">
+						<button type="warn" class="mini-btn" size="mini" @click="startMediaServerRecord()" v-if="!screenSharing">开始录制屏幕</button>
+						<button type="default" class="mini-btn" size="mini" @click="stopMediaServerRecord()" v-if="screenSharing">停止录制屏幕</button>
+					</uni-row>
 				</div>
 			</div>
 		</div>
@@ -296,7 +294,7 @@
 								var stream = app + MEDIA_SERVER_RECORD_SUFIX
 								$.ajax({
 									dataType: "json",
-									url: "/index/api/startRecord?type=1&vhost=__defaultVhost__&app=" +
+									url: this.MEDIA_SERVER_URL + "/index/api/startRecord?type=1&vhost=__defaultVhost__&app=" +
 										app + "&stream=" + stream +
 										"&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc",
 									type: "GET",
@@ -351,7 +349,7 @@
 				const stream = this.app + this.MEDIA_SERVER_RECORD_SUFIX
 				$.ajax({
 					dataType: "json",
-					url: "/index/api/stopRecord?type=1&vhost=__defaultVhost__&app=" + this.app + "&stream=" + stream +
+					url: this.MEDIA_SERVER_URL + "/index/api/stopRecord?type=1&vhost=__defaultVhost__&app=" + this.app + "&stream=" + stream +
 						"&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc",
 					type: "GET",
 					timeout: 1000,
@@ -857,7 +855,7 @@
 				// 获取同一个会议室（app相同）其他人的直播流
 				$.ajax({
 					dataType: "json",
-					url: "/index/api/getMediaList?app=" + app + "&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc",
+					url: this.MEDIA_SERVER_URL + "/index/api/getMediaList?app=" + app + "&secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc",
 					type: "GET",
 					timeout: 1000,
 					headers: {

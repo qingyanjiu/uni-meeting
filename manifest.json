@@ -73,6 +73,7 @@
     "locale" : "zh-Hans",
 	"h5" : {
 		"devServer" : {
+			"https" : true,
 			"port" : 8080, //端口号
 			"disableHostCheck" : true,
 			"proxy" : {
