@@ -24,8 +24,6 @@
 					<span id="videoName_'+i.toString()+'" class="badge-self">
 						我
 					</span>
-					<span id="toggleAudio" onclick="toggleAudio()" class="control-self-a">设为静音</span>
-					<span id="toggleVideo" onclick="toggleVideo()" class="control-self-v">设为黑屏</span>
 					<video id="selfVideo" ref="selfVideo" autoplay :controls="false" :show-center-play-btn="false" 
 						class="self-video"></video>
 				</div>
@@ -68,39 +66,30 @@
 						<uni-col :span="12">
 							<view class="uni-list-cell uni-list-cell-db" style="transform:scale(0.7);">
 								<view class="uni-list-cell-db">开启视频</view>
-								<switch checked v-model="enableVideo" />
+								<switch :checked="enableVideo" @change="toggleVideo()"/>
 							</view>
 						</uni-col>
 						<uni-col :span="12">
 							<view class="uni-list-cell uni-list-cell-db" style="transform:scale(0.7);">
 								<view class="uni-list-cell-db">开启声音</view>
-								<switch checked v-model="enableAudio" />
+								<switch :checked="enableAudio" @change="toggleAudio()"/>
 							</view>
 						</uni-col>
 					</uni-row>
 					
 					<uni-row class="demo-uni-row">
-						<button type="primary" @click="start_camera()">开启摄像头</button>
+						<button type="primary" class="mini-btn" size="mini" @click="join_meeting()" v-if="!inMeeting">接入视频会议</button>
+						<button type="default" class="mini-btn" size="mini" @click="stop_camera()" v-if="inMeeting">断开视频会议</button>
 					</uni-row>
-
-					<!-- <span class="option-item">
-						<label for="videoEnable">开启视频</label>
-						<input type="checkbox" id="videoEnable" checked="checked" />
-					</span>
-					<span class="option-item">
-						<label for="audioEnable">开启声音</label>
-						<input type="checkbox" id="audioEnable" checked="checked" />
-					</span>
-					<span>
-						<button onclick="start_camera()">接入摄像头</button>
-						<button onclick="stop_camera()">停止摄像头</button>
-					</span> -->
+					
+					<uni-row class="demo-uni-row">
+						<button type="warn" class="mini-btn" size="mini" @click="start_screenshare()" v-if="!screenSharing">开始屏幕分享</button>
+						<button type="default" class="mini-btn" size="mini" @click="stop_screenshare()" v-if="screenSharing">停止屏幕分享</button>
+					</uni-row>
 				</div>
 
 				<div class="screen-share" id="screenShareBox" v-if="this.host">
 					<span>
-						<button onclick="start_screenshare()">开始屏幕分享</button>
-						<button onclick="stop_screenshare()">停止屏幕分享</button>
 						<button id="startRecord" onclick="startMediaServerRecord()">开始录制屏幕</button>
 						<button onclick="stopMediaServerRecord()">停止录制屏幕</button>
 					</span>
@@ -123,7 +112,7 @@
 				SCREEN_SHARE_SUFFIX: "_screenshare",
 				SUB_STREAM_SUFIX: "_sub",
 				MEDIA_SERVER_RECORD_SUFIX: "_record",
-				MEDIA_SERVER_URL: 'http://localhost:48080',
+				MEDIA_SERVER_URL: '/media-server',
 				// 会议室名称，在url地址中添加 ?room=会议室名称
 				app: 'live',
 				// 是否host，host才能共享屏幕，在url地址中添加 &host=1
@@ -153,9 +142,11 @@
 				selectedMicIndex: 0,
 				selectedMicId: '',
 				micList: [],
-				enableVideo: true,
-				enableAudio: true,
-				streaming: false
+				enableVideo: false,
+				enableAudio: false,
+				streaming: false,
+				inMeeting: false,
+				screenSharing: false
 			}
 		},
 		onLoad() {
@@ -274,7 +265,7 @@
 					function(e) {
 						// offer anwser 交换失败
 						console.log("offer anwser 交换失败", e);
-						stop_screenshare();
+						this.stop_screenshare();
 					}
 				);
 
@@ -395,22 +386,16 @@
 
 			// 静音、取消静音
 			toggleAudio() {
-				this.selfplayer_sub.localStream.getAudioTracks()[0].enabled = !this.selfplayer.localStream.getAudioTracks()[0]
-					.enabled
-				this.selfplayer.localStream.getAudioTracks()[0].enabled = !this.selfplayer.localStream.getAudioTracks()[0].enabled
-				$("#toggleAudio").text(this.selfplayer.localStream.getAudioTracks()[0].enabled ? '设为静音' : '取消静音')
-				$("#toggleAudio").css("background", this.selfplayer.localStream.getAudioTracks()[0].enabled ?
-					"rgb(45, 126, 233)" : "rgba(233, 101, 45, 1)")
+				this.enableAudio = !this.enableAudio
+				this.selfplayer_sub && (this.selfplayer_sub.localStream.getAudioTracks()[0].enabled = this.enableAudio)
+				this.selfplayer && (this.selfplayer.localStream.getAudioTracks()[0].enabled = this.enableAudio)
 			},
 
 			// 开启视频、关闭视频
 			toggleVideo() {
-				this.selfplayer_sub.localStream.getVideoTracks()[0].enabled = !this.selfplayer.localStream.getVideoTracks()[0]
-					.enabled
-				this.selfplayer.localStream.getVideoTracks()[0].enabled = !this.selfplayer.localStream.getVideoTracks()[0].enabled
-				$("#toggleVideo").text(this.selfplayer.localStream.getVideoTracks()[0].enabled ? '设为黑屏' : '显示画面')
-				$("#toggleVideo").css("background", this.selfplayer.localStream.getVideoTracks()[0].enabled ?
-					"rgb(45, 126, 233)" : "rgba(233, 101, 45, 1)")
+				this.enableVideo = !this.enableVideo
+				this.selfplayer_sub && (this.selfplayer_sub.localStream.getVideoTracks()[0].enabled = this.enableVideo)
+				this.selfplayer && (this.selfplayer.localStream.getVideoTracks()[0].enabled = this.enableVideo)
 			},
 
 			setLocalStorage(key) {
@@ -502,11 +487,14 @@
 
 			// 开始屏幕分享
 			start_screenshare() {
-				stop_screenshare()
-				screenSharePlayer = new Endpoint({
-					element: this.$refs['screenShare'], // video 标签
+				this.stop_screenshare()
+				
+				const screenShareElement = this.$refs['screenShare'].$el.children[0].children[0]
+				
+				this.screenSharePlayer = new Endpoint({
+					element: screenShareElement, // video 标签
 					debug: true, // 是否打印日志
-					zlmsdpUrl: getScreenSharePushUrl(),
+					zlmsdpUrl: this.getScreenSharePushUrl(),
 					simulcast: false,
 					useCamera: false,
 					audioEnable: true,
@@ -518,8 +506,10 @@
 					},
 					usedatachannel: false
 				});
+				
+				const that = this
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ICE_CANDIDATE_ERROR,
 					function(e) {
 						// ICE 协商出错
@@ -527,7 +517,7 @@
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_REMOTE_STREAMS,
 					function(e) {
 						//获取到了远端流，可以播放
@@ -535,26 +525,27 @@
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,
 					function(e) {
 						// offer anwser 交换失败
 						console.log("offer anwser 交换失败", e);
-						stop_screenshare();
+						this.stop_screenshare();
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_LOCAL_STREAM,
 					function(s) {
 						// 获取到了本地流
-						this.$refs['screenShare'].srcObject = s;
-						this.$refs['screenShare'].muted = true;
+						screenShareElement.srcObject = s;
+						screenShareElement.muted = true;
+						that.screenSharing = true
 						//console.log('offer anwser 交换失败',e)
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.CAPTURE_STREAM_FAILED,
 					function(s) {
 						// 获取本地流失败
@@ -563,7 +554,7 @@
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,
 					function(state) {
 						// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
@@ -571,26 +562,26 @@
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_DATA_CHANNEL_OPEN,
 					function(event) {
 						console.log("rtc datachannel 打开 :", event);
 					}
 				);
 
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_DATA_CHANNEL_MSG,
 					function(event) {
 						console.log("rtc datachannel 消息 :", event.data);
 					}
 				);
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_DATA_CHANNEL_ERR,
 					function(event) {
 						console.log("rtc datachannel 错误 :", event);
 					}
 				);
-				screenSharePlayer.on(
+				this.screenSharePlayer.on(
 					Events.WEBRTC_ON_DATA_CHANNEL_CLOSE,
 					function(event) {
 						console.log("rtc datachannel 关闭 :", event);
@@ -600,7 +591,7 @@
 
 			// 开始分享摄像头或者麦克风
 			// useCamera: 布尔类型，播放时是否使用摄像头，如果不使用会共享屏幕或者窗口
-			start_play() {
+			start_camera() {
 				const res = this.cameraResolutions[this.selectedCameraId]
 				const h = parseInt(res.h);
 				const w = parseInt(res.w);
@@ -620,8 +611,8 @@
 					simulcast: false,
 					// useCamera:document.getElementById('useCamera').checked,
 					useCamera: true,
-					audioEnable: this.enableAudio,
-					videoEnable: this.enableVideo,
+					audioEnable: true,
+					videoEnable: true,
 					recvOnly: false,
 					resolution: {
 						w: w,
@@ -658,6 +649,8 @@
 				);
 
 				this.selfplayer.on(Events.WEBRTC_ON_LOCAL_STREAM, function(s) {
+					s.getVideoTracks()[0].enabled = that.enableVideo
+					s.getAudioTracks()[0].enabled = that.enableAudio
 					// 获取到了本地流
 					selfVideoElement.srcObject = s;
 					// document.getElementById("selfVideo").muted = true;
@@ -669,6 +662,7 @@
 					console.log("获取本地流失败");
 				});
 
+				const that  = this
 				this.selfplayer.on(
 					Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,
 					function(state) {
@@ -712,8 +706,8 @@
 					simulcast: false,
 					//useCamera:document.getElementById('useCamera').checked,
 					useCamera: true,
-					audioEnable: this.enableAudio,
-					videoEnable: this.enableVideo,
+					audioEnable: true,
+					videoEnable: true,
 					recvOnly: false,
 					resolution: {
 						w: 320,
@@ -722,6 +716,13 @@
 					usedatachannel: false,
 					deviceId: cameraId,
 				});
+				
+				this.selfplayer_sub.on(Events.WEBRTC_ON_LOCAL_STREAM, function(s) {
+					s.getVideoTracks()[0].enabled = that.enableVideo
+					s.getAudioTracks()[0].enabled = that.enableAudio
+				});
+				
+				this.inMeeting = true
 			},
 
 			start_play_other() {
@@ -812,7 +813,7 @@
 									console.log("当前状态==>", state);
 									if (state == 'disconnected') {
 										// 如果没有屏幕共享的流，关闭画面
-										stop_screenshare()
+										this.stop_screenshare()
 									}
 								}
 							);
@@ -1046,9 +1047,9 @@
 				});
 			},
 
-			start_camera() {
+			join_meeting() {
 				this.stop_camera()
-				this.start_play()
+				this.start_camera()
 			},
 
 			stop_camera() {
@@ -1064,7 +1065,7 @@
 						this.selfplayer_sub = null;
 					}
 
-					var local = document.getElementById("selfVideo");
+					const local = this.$refs['selfVideo'].$el.children[0].children[0]
 					if (local.srcObject) {
 						local.srcObject.getTracks().forEach((element) => {
 							element.stop();
@@ -1074,15 +1075,17 @@
 						// document.location.reload()
 					}
 				}
+				
+				this.inMeeting = false
 			},
 
 			stop_screenshare() {
 				// 关屏幕分享流
-				if (screenSharePlayer != null) {
-					screenSharePlayer.close();
-					screenSharePlayer = null;
+				if (this.screenSharePlayer != null) {
+					this.screenSharePlayer.close();
+					this.screenSharePlayer = null;
 
-					const share = this.$refs['screenShare']
+					const share = this.$refs['screenShare'].$el.children[0].children[0]
 					if (share.srcObject) {
 						share.srcObject.getTracks().forEach((element) => {
 							element.stop();
@@ -1091,6 +1094,7 @@
 						share.load();
 					}
 				}
+				this.screenSharing = false
 			},
 
 			close() {

@@ -70,5 +70,24 @@
     },
     "vueVersion" : "2",
     "fallbackLocale" : "zh-Hans",
-    "locale" : "zh-Hans"
+    "locale" : "zh-Hans",
+	"h5" : {
+		"devServer" : {
+			"port" : 8080, //端口号
+			"disableHostCheck" : true,
+			"proxy" : {
+				"/media-server" : {
+					"target" : "https://49.7.210.27:50443/", //自己项目接口域名
+					"changeOrigin" : true,  //是否跨域
+					"secure" : false,  // 设置支持https协议的代理
+					"pathRewrite": {"^/media-server":""}   //api路径重定向，根据具体情况调整，也可不写
+				}
+			}
+		},
+		"optimization" : {
+		   "treeShaking" : {
+			   "enable" : false
+			}
+		}
+	}
 }
