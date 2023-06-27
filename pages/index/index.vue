@@ -13,7 +13,7 @@
 			</div>
 		</div>
 		<div style="text-align: center;" id="main-content" v-if="!showPrompt">
-			<div style="text-align: center">
+			<!-- <div style="text-align: center">
 				<video id="screenShare" ref="screenShare" autoplay :controls="false" :show-center-play-btn="false" 
 					class="screen-share-video"></video>
 				<video id="mediaServerRecord" style="display:none"></video>
@@ -27,8 +27,8 @@
 					<video id="selfVideo" ref="selfVideo" autoplay :controls="false" :show-center-play-btn="false" 
 						class="self-video"></video>
 				</div>
-			</div>
-
+			</div> -->
+			
 			<div class="user-options">
 				<view class="uni-form-item uni-column">
 					<view class="title">我的名字</view>
@@ -144,7 +144,8 @@
 				enableAudio: false,
 				streaming: false,
 				inMeeting: false,
-				screenSharing: false
+				screenSharing: false,
+				pusher: null
 			}
 		},
 		onLoad() {
@@ -152,8 +153,22 @@
 			if (!this.showPrompt) {
 				this.initCameraAndMicList()
 			}
+			// this.plusReady()
 		},
 		methods: {
+			plusReady() {  
+			   const currentWebview = this.$mp.page.$getAppWebview()  
+			   this.pusher = plus.video.createLivePusher("", {    
+				   url:'rtmp://49.7.210.27/test/test',    
+				   top:'100px',    
+				   left:'0px',    
+				   width: '100%',    
+				   height: '300px',    
+				   position: 'static'    
+			   });    
+			   currentWebview.append(pusher) 
+			   this.pusher.start()
+			}, 
 			changeCamera(camera) {
 				this.selectedCameraId = camera.deviceId
 			},
