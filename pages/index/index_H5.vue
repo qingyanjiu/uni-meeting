@@ -13,19 +13,73 @@
 			</div>
 		</div>
 		<div style="text-align: center;" id="main-content" v-if="!showPrompt">
+			<div style="text-align: center">
+				<video id="screenShare" ref="screenShare" autoplay :controls="false" :show-center-play-btn="false" 
+					class="screen-share-video"></video>
+				<video id="mediaServerRecord" style="display:none"></video>
+			</div>
+
+			<div id="meeting" style="text-align: left">
+				<div style="display: inline-block" id="selfWindow">
+					<span id="videoName_'+i.toString()+'" class="badge-self">
+						我
+					</span>
+					<video id="selfVideo" ref="selfVideo" autoplay :controls="false" :show-center-play-btn="false" 
+						class="self-video"></video>
+				</div>
+			</div>
 			
 			<div class="user-options">
-				<!-- <view class="uni-form-item uni-column">
+				<view class="uni-form-item uni-column">
 					<view class="title">我的名字</view>
 					<input class="uni-input" v-model="stream" focus placeholder="填写名字" />
-				</view> -->
+				</view>
 
 				<div class="camera-share">
+
+					<view class="uni-list">
+						<view class="uni-list-cell">
+							<view class="uni-list-cell-left">
+								摄像头
+							</view>
+							<view class="uni-list-cell-db">
+								<picker :value="selectedCameraIndex" :range="cameraList" @change="changeCamera(cameraList[selectedCameraIndex])">
+									<view class="uni-input">{{cameraList[selectedCameraIndex]}}</view>
+								</picker>
+							</view>
+						</view>
+					</view>
+					<view class="uni-list">
+						<view class="uni-list-cell">
+							<view class="uni-list-cell-left">
+								麦克风
+							</view>
+							<view class="uni-list-cell-db">
+								<picker :value="selectedMicIndex" :range="micList" @change="changeMic(micList[selectedMicIndex])">
+									<view class="uni-input">{{micList[selectedMicIndex]}}</view>
+								</picker>
+							</view>
+						</view>
+					</view>
 					
 					<uni-row class="demo-uni-row">
-						<button type="default" class="mini-btn" size="mini" @click="switchCamera()" v-if="!inMeeting">切换摄像头</button>
-						<button type="primary" class="mini-btn" size="mini" @click="start()" v-if="!inMeeting">接入视频会议</button>
-						<button type="default" class="mini-btn" size="mini" @click="stop()" v-if="inMeeting">断开视频会议</button>
+						<uni-col :span="12">
+							<view class="uni-list-cell uni-list-cell-db" style="transform:scale(0.7);">
+								<view class="uni-list-cell-db">开启视频</view>
+								<switch :checked="enableVideo" @change="toggleVideo()"/>
+							</view>
+						</uni-col>
+						<uni-col :span="12">
+							<view class="uni-list-cell uni-list-cell-db" style="transform:scale(0.7);">
+								<view class="uni-list-cell-db">开启声音</view>
+								<switch :checked="enableAudio" @change="toggleAudio()"/>
+							</view>
+						</uni-col>
+					</uni-row>
+					
+					<uni-row class="demo-uni-row">
+						<button type="primary" class="mini-btn" size="mini" @click="join_meeting()" v-if="!inMeeting">接入视频会议</button>
+						<button type="default" class="mini-btn" size="mini" @click="stop_camera()" v-if="inMeeting">断开视频会议</button>
 					</uni-row>
 					
 					<uni-row class="demo-uni-row" v-if="host">
@@ -90,57 +144,22 @@
 				enableAudio: false,
 				streaming: false,
 				inMeeting: false,
-				screenSharing: false,
-				pusher: ''
+				screenSharing: false
 			}
 		},
 		onLoad() {
-			this.initPusher()
+			this.devicemanager = new BrowserDeviceManager()
+			if (!this.showPrompt) {
+				this.initCameraAndMicList()
+			}
 		},
 		methods: {
-			initPusher() {
-				const currentWebview = this.$mp.page.$getAppWebview()  
-				this.pusher = plus.video.createLivePusher("pusher", {    
-					url:'rtmp://49.7.210.27/test/test_sub',
-					mode: 'HD',
-					aspect: '3:4',
-					top:'2px',
-					left:'2px',
-					width: '12%',
-					height: '6%',
-					position: 'static',
-					muted: false,
-					enableCamera: true
-				});    
-				currentWebview.append(this.pusher);  
+			changeCamera(camera) {
+				this.selectedCameraId = camera.deviceId
 			},
-			start() {
-				this.pusher.start({
-					success: (a) => {
-						console.log("livePusher.start:" + JSON.stringify(a));
-					}
-				});
-			},
-			snapshot() {
-				this.pusher.snapshot({
-					success: (e) => {
-						console.log(JSON.stringify(e));
-					}
-				});
-			},
-			stop() {
-				this.pusher.stop({
-					success: (a) => {
-						console.log(JSON.stringify(a));
-					}
-				});
-			},
-			switchCamera() {
-				this.pusher.switchCamera({
-					success: (a) => {
-						console.log("livePusher.switchCamera:" + JSON.stringify(a));
-					}
-				});
+			
+			changeMic(mic) {
+				this.selectedMicId = mic.deviceId
 			},
 			
 			enter() {
