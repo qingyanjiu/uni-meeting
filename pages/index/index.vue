@@ -76,7 +76,6 @@
 				// 上次拉到的stream列表，用来对比谁下线了
 				latestStreamSet: new Set(),
 				// 设备上摄像头支持的最大分辨率
-				cameraResolutions: {},
 				showPrompt: false,
 				passwd: '',
 				stream: '',
@@ -156,42 +155,6 @@
 					alert("密码错误")
 					return
 				}
-			},
-
-			// 初始化摄像头列表和麦克风列表
-			initCameraAndMicList() {
-				// 获取摄像头列表
-				this.devicemanager
-					.getCameraList()
-					.then((list) => {
-						this.selectedCameraId = list[0].deviceId
-						for (let i = 0; i < list.length; ++i) {
-							this.cameraList.push(list[i].label)
-							// 获取摄像头参数（分辨率、帧数等）
-							const capabilities = list[i].getCapabilities()
-							this.cameraResolutions[list[i].deviceId] = {
-								w: capabilities.width.max,
-								h: capabilities.height.max,
-							};
-						}
-					})
-					.catch((err) => {
-						console.log(err);
-					});
-
-
-				// 获取麦克风列表
-				this.devicemanager
-					.getMicList()
-					.then((list) => {
-						this.selectedMicId = list[0].deviceId
-						for (let i = 0; i < list.length; ++i) {
-							this.micList.push(list[i].label)
-						}
-					})
-					.catch((err) => {
-						console.log(err);
-					});
 			},
 
 			// 启动转码服务器录像(推流到zlm接口录像)
@@ -566,142 +529,6 @@
 						console.log("rtc datachannel 关闭 :", event);
 					}
 				);
-			},
-
-			// 开始分享摄像头或者麦克风
-			// useCamera: 布尔类型，播放时是否使用摄像头，如果不使用会共享屏幕或者窗口
-			start_camera() {
-				const res = this.cameraResolutions[this.selectedCameraId]
-				const h = parseInt(res.h);
-				const w = parseInt(res.w);
-				//当前选中的摄像头
-				const cameraId = this.selectedCameraId
-				//当前选中的麦克风
-				const micId = this.selectedMicId
-				
-				const selfVideoElement = this.$refs['selfVideo'].$el.children[0].children[0]
-				
-				// 主码流
-				this.selfplayer = new Endpoint({
-					element: selfVideoElement, // video 标签
-					debug: true, // 是否打印日志
-					zlmsdpUrl: this.getPushUrl(),
-					//simulcast: document.getElementById("simulcast").checked,
-					simulcast: false,
-					// useCamera:document.getElementById('useCamera').checked,
-					useCamera: true,
-					audioEnable: true,
-					videoEnable: true,
-					recvOnly: false,
-					resolution: {
-						w: w,
-						h: h
-					},
-					usedatachannel: false,
-					deviceId: cameraId,
-					micId: micId
-				});
-
-				this.selfplayer.on(
-					Events.WEBRTC_ICE_CANDIDATE_ERROR,
-					function(e) {
-						// ICE 协商出错
-						console.log("ICE 协商出错");
-					}
-				);
-
-				this.selfplayer.on(
-					Events.WEBRTC_ON_REMOTE_STREAMS,
-					function(e) {
-						//获取到了远端流，可以播放
-						console.log("播放成功", e.streams);
-					}
-				);
-
-				this.selfplayer.on(
-					Events.WEBRTC_OFFER_ANWSER_EXCHANGE_FAILED,
-					function(e) {
-						// offer anwser 交换失败
-						console.log("offer anwser 交换失败", e);
-						this.stop_camera();
-					}
-				);
-
-				this.selfplayer.on(Events.WEBRTC_ON_LOCAL_STREAM, function(s) {
-					s.getVideoTracks()[0].enabled = that.enableVideo
-					s.getAudioTracks()[0].enabled = that.enableAudio
-					// 获取到了本地流
-					selfVideoElement.srcObject = s;
-					// document.getElementById("selfVideo").muted = true;
-					//console.log('offer anwser 交换失败',e)
-				});
-
-				this.selfplayer.on(Events.CAPTURE_STREAM_FAILED, function(s) {
-					// 获取本地流失败
-					console.log("获取本地流失败");
-				});
-
-				const that  = this
-				this.selfplayer.on(
-					Events.WEBRTC_ON_CONNECTION_STATE_CHANGE,
-					function(state) {
-						// RTC 状态变化 ,详情参考 https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/connectionState
-						console.log("当前状态==>", state);
-					}
-				);
-
-				this.selfplayer.on(
-					Events.WEBRTC_ON_DATA_CHANNEL_OPEN,
-					function(event) {
-						console.log("rtc datachannel 打开 :", event);
-					}
-				);
-
-				this.selfplayer.on(
-					Events.WEBRTC_ON_DATA_CHANNEL_MSG,
-					function(event) {
-						console.log("rtc datachannel 消息 :", event.data);
-					}
-				);
-				this.selfplayer.on(
-					Events.WEBRTC_ON_DATA_CHANNEL_ERR,
-					function(event) {
-						console.log("rtc datachannel 错误 :", event);
-					}
-				);
-				this.selfplayer.on(
-					Events.WEBRTC_ON_DATA_CHANNEL_CLOSE,
-					function(event) {
-						console.log("rtc datachannel 关闭 :", event);
-					}
-				);
-
-				// 再推一路子码流。
-				this.selfplayer_sub = new Endpoint({
-					element: selfVideoElement, // video 标签
-					debug: true, // 是否打印日志
-					zlmsdpUrl: this.getPushSubUrl(),
-					//simulcast: document.getElementById("simulcast").checked,
-					simulcast: false,
-					//useCamera:document.getElementById('useCamera').checked,
-					useCamera: true,
-					audioEnable: true,
-					videoEnable: true,
-					recvOnly: false,
-					resolution: {
-						w: 320,
-						h: 180
-					},
-					usedatachannel: false,
-					deviceId: cameraId,
-				});
-				
-				this.selfplayer_sub.on(Events.WEBRTC_ON_LOCAL_STREAM, function(s) {
-					s.getVideoTracks()[0].enabled = that.enableVideo
-					s.getAudioTracks()[0].enabled = that.enableAudio
-				});
-				
-				this.inMeeting = true
 			},
 
 			start_play_other() {
