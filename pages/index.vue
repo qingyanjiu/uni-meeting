@@ -1,34 +1,19 @@
 <template>
 	<view class="content">
-		<a id="recordDownload" style="display:none"></a>
-		<div class="prompt" v-if="showPrompt">
-			<div style='position:relative;top:40%'>
-				<div>您好，欢迎来到视频会议室</div>
-				<div>分享摄像头之前请记得修改自己的名字~</div>
-				<br />
-				<div><input id='passwd' v-model="passwd" placeholder="输入密码"
-						style='height:30px;border:solid 1px;margin:0 40%;' /></div>
-				<br />
-				<div><a href='javascript:void(0)' @click='enter()'>点击我进入会议</a></div>
-			</div>
-		</div>
 		<div style="text-align: center;" id="main-content" v-if="!showPrompt">
-			
 			<div class="user-options">
-				<!-- <view class="uni-form-item uni-column">
-					<view class="title">我的名字</view>
-					<input class="uni-input" v-model="stream" focus placeholder="填写名字" />
-				</view> -->
-
 				<div class="camera-share">
-					
+          <div ref="videoContent"></div> 
+          <div >
+            <web-view style="margin-top: 50px;" class="webview" :update-title="false" :src = "videoShareUrl"></web-view>
+          </div>
 					<uni-row class="demo-uni-row">
 						<button type="default" class="mini-btn" size="mini" @click="switchCamera()" v-if="!inMeeting">切换摄像头</button>
 						<button type="primary" class="mini-btn" size="mini" @click="start()" v-if="!inMeeting">接入视频会议</button>
 						<button type="default" class="mini-btn" size="mini" @click="stop()" v-if="inMeeting">断开视频会议</button>
 					</uni-row>
 					
-					<uni-row class="demo-uni-row" v-if="host">
+<!-- 					<uni-row class="demo-uni-row" v-if="host">
 						<button type="warn" class="mini-btn" size="mini" @click="start_screenshare()" v-if="!screenSharing">开始屏幕分享</button>
 						<button type="default" class="mini-btn" size="mini" @click="stop_screenshare()" v-if="screenSharing">停止屏幕分享</button>
 					</uni-row>
@@ -36,7 +21,7 @@
 					<uni-row class="demo-uni-row" v-if="host">
 						<button type="warn" class="mini-btn" size="mini" @click="startMediaServerRecord()" v-if="!screenSharing">开始录制屏幕</button>
 						<button type="default" class="mini-btn" size="mini" @click="stopMediaServerRecord()" v-if="screenSharing">停止录制屏幕</button>
-					</uni-row>
+					</uni-row> -->
 				</div>
 			</div>
 		</div>
@@ -48,7 +33,7 @@
 		BrowserDeviceManager
 	} from '@/js/browserDeviceManager.js'
 	import { Endpoint, Events } from '@/js/ZLMRTCClient.js'
-
+  var wv;
 	export default {
 		data() {
 			return {
@@ -90,15 +75,30 @@
 				streaming: false,
 				inMeeting: false,
 				screenSharing: false,
-				pusher: ''
+				pusher: '',
+        videoShareUrl: '../hybrid/html/videoShare.html?app=test&stream=_screenshare',
+        webviewStyles: {
+          progress: false,
+          width: '200px',
+          height: '150px'
+        }
 			}
 		},
+    // onReady() {
+    //   // #ifdef APP-PLUS
+    //   var currentWebview = this.$scope.$getAppWebview() //此对象相当于html5plus里的plus.webview.currentWebview()。在uni-app里vue页面直接使用plus.webview.currentWebview()无效
+    //   setTimeout(function() {
+    //     wv = currentWebview.children()[0]
+    //     wv.setStyle({top:150,height:300})
+    //   }, 1000); //如果是页面初始化调用时，需要延时一下
+    //   // #endif
+    // },
 		onLoad() {
 			this.initPusher()
 		},
 		methods: {
 			initPusher() {
-				const currentWebview = this.$mp.page.$getAppWebview()  
+				const currentWebview = this.$mp.page.$getAppWebview()
 				this.pusher = plus.video.createLivePusher("pusher", {    
 					url:'rtmp://49.7.210.27/test/test_sub',
 					mode: 'HD',
@@ -1017,4 +1017,7 @@
 		margin: 4px;
 		text-align: center;
 	}
+  .webview{
+
+  }
 </style>
